@@ -37,7 +37,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --dev --reinstall-package headsurf
 
       - name: Setup Rclone
         uses: AnimMouse/setup-rclone@v1
@@ -159,7 +159,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --dev --reinstall-package headsurf
 
       - name: Setup Rclone
         uses: AnimMouse/setup-rclone@v1
