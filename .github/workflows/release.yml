@@ -14,6 +14,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest]
+        include:
+          - os: macos-latest
+            platform: macos
+          - os: windows-latest
+            platform: windows
     runs-on: ${{ matrix.os }}
 
     steps:
