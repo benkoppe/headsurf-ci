@@ -91,6 +91,10 @@ jobs:
           name: build-${{ matrix.os }}
           path: dist
 
+      - name: Install create-dmg
+        if: runner.os == 'macOS'
+        run: brew install create-dmg
+
       - name: Package (macOS)
         if: runner.os == 'macOS'
         run: |
