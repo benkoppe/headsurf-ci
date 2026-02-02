@@ -152,7 +152,7 @@ jobs:
             -v
 
       - name: Package update bundle
-        run: uv run repo_add_bundle.py
+        run: uv run repo_add_bundle.py ${{ github.ref_name }} --platform ${{ matrix.platform }}
 
       - name: Push tufup data to R2
         run: |
