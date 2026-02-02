@@ -48,7 +48,7 @@ jobs:
         shell: pwsh
         run: |
           choco install innosetup -y
-          $version = "${{ github.ref_name }}"
+          $version = "${{ inputs.ref }}"
           if ($version -like "v*") { $version = $version.Substring(1) } else { $version = "0.1.0" }
           & "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" "/DMyAppVersion=$version" "packaging\\installer.iss"
 

@@ -1,12 +1,9 @@
 name: release
 
 on:
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: "Branch, tag, or commit SHA to release"
-        required: true
-        default: "main"
+  push:
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
@@ -21,7 +18,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: "icar1an/headbird"
-          ref: ${{ inputs.ref }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
           ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
 
@@ -57,7 +54,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: "icar1an/headbird"
-          ref: ${{ inputs.ref }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
           ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
 
@@ -77,7 +74,7 @@ jobs:
         shell: pwsh
         run: |
           choco install innosetup -y
-          $version = "${{ inputs.ref }}"
+          $version = "${{ github.ref_name }}"
           if ($version -like "v*") { $version = $version.Substring(1) } else { $version = "0.1.0" }
           & "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" "/DMyAppVersion=$version" "packaging\\installer.iss"
 
@@ -114,7 +111,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: "icar1an/headbird"
-          ref: ${{ inputs.ref }}
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
           ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
 
@@ -178,3 +175,4 @@ jobs:
             artifacts/**/Headsurf-macos.dmg
             artifacts/**/Headsurf-windows-setup.exe
             artifacts/**/Headsurf-linux.AppImage
+        if: github.ref_type == 'tag'
