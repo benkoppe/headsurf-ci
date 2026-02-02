@@ -150,6 +150,7 @@ jobs:
           rclone copy r2:${{ secrets.R2_PUBLIC_BUCKET }}/tufup/${{ matrix.platform }}/repository/ \
             tufup/${{ matrix.platform }}/repository/ \
             -v
+          mkdir -p tufup/${{ matrix.platform }}/repository/targets
 
       - name: Package update bundle
         run: uv run repo_add_bundle.py ${{ github.ref_name }} --platform ${{ matrix.platform }}
