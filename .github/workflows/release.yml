@@ -59,8 +59,56 @@ jobs:
             tufup/${{ matrix.platform }}/repository/ \
             -v
 
+      - name: Install Developer ID certificate
+        if: runner.os == 'macOS'
+        env:
+          CERT_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          CERT_PATH=$RUNNER_TEMP/dev_id.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain-db
+
+          echo "$CERT_BASE64" | base64 --decode > $CERT_PATH
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security import $CERT_PATH -k $KEYCHAIN_PATH -P "$CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security list-keychains -d user -s $KEYCHAIN_PATH
+
       - name: Build app
         run: uv run pyinstaller --clean main.spec --noconfirm
+
+      - name: Notarize & staple app
+        if: runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          APP_NAME="Headsurf.app"
+          ZIP_NAME="Headsurf.zip"
+
+          # Store credentials in temporary keychain profile
+          xcrun notarytool store-credentials "AC_PROFILE" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
+
+          # Zip the .app correctly (preserves metadata)
+          ditto -c -k --sequesterRsrc --keepParent "dist/$APP_NAME" "$ZIP_NAME"
+
+          # Submit for notarization and wait
+          xcrun notarytool submit "$ZIP_NAME" \
+            --keychain-profile "AC_PROFILE" \
+            --wait
+
+          # Staple the ticket to the ORIGINAL .app (not the zip)
+          xcrun stapler staple "dist/$APP_NAME"
+
+          # Validate stapling worked
+          spctl -a -vv "dist/$APP_NAME"
 
       - name: Upload raw build output
         uses: actions/upload-artifact@v4
