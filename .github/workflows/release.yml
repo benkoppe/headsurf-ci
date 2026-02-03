@@ -156,12 +156,13 @@ jobs:
       - name: Package update bundle
         run: uv run repo_add_bundle.py ${{ github.ref_name }} --platform ${{ matrix.platform }}
 
-      - name: Push tufup data to R2
-        shell: bash
-        run: |
-          rclone sync tufup/${{ matrix.platform }}/repository/ \
-            r2:${{ secrets.R2_PUBLIC_BUCKET }}/tufup/${{ matrix.platform }}/repository/ \
-            -v
+      - name: Upload public tufup data artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tufup-public-${{ runner.os }}
+          path: |
+            tufup/${{ matrix.platform }}/repository/
+          retention-days: 1
 
   release:
     needs: build
@@ -171,6 +172,28 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+
+      - name: Setup Rclone
+        uses: AnimMouse/setup-rclone@v1
+        with:
+          rclone_config: |
+            [r2]
+            type = s3
+            provider = Cloudflare
+            access_key_id = ${{ secrets.R2_ACCESS_KEY_ID }}
+            secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
+            endpoint = https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+            acl = private
+          disable_base64: true
+
+      - name: Push tufup data to R2
+        shell: bash
+        run: |
+          rclone sync artifacts/tufup-public-macOS/tufup/macos/repository/ \
+            r2:${{ secrets.R2_PUBLIC_BUCKET }}/tufup/macos/repository/ -v
+
+          rclone sync artifacts/tufup-public-Windows/tufup/windows/repository/ \
+            r2:${{ secrets.R2_PUBLIC_BUCKET }}/tufup/windows/repository/ -v
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
