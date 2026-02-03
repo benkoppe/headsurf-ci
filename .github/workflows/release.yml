@@ -185,10 +185,10 @@ jobs:
       - name: Push tufup data to R2
         shell: bash
         run: |
-          rclone sync artifacts/tufup-public-macOS/tufup/macos/repository/ \
+          rclone sync artifacts/tufup-public-macOS/repository/ \
             r2:${{ secrets.R2_PUBLIC_BUCKET }}/tufup/macos/repository/ -v
 
-          rclone sync artifacts/tufup-public-Windows/tufup/windows/repository/ \
+          rclone sync artifacts/tufup-public-Windows/repository/ \
             r2:${{ secrets.R2_PUBLIC_BUCKET }}/tufup/windows/repository/ -v
 
       - name: Create GitHub release
