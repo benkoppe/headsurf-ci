@@ -52,7 +52,7 @@ jobs:
             acl = private
           disable_base64: true
 
-      - name: Pull tufup data from R2
+      - name: Pull tufup public data from R2
         shell: bash
         run: |
           rclone copy r2:${{ secrets.R2_PUBLIC_BUCKET }}/tufup/${{ matrix.platform }}/repository/ \
@@ -114,53 +114,6 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install create-dmg
 
-      - name: Create DMG
-        if: runner.os == 'macOS'
-        run: |
-          chmod +x packaging/make_dmg.sh
-          packaging/make_dmg.sh
-
-      - name: Upload macOS DMG
-        if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
-        with:
-          name: headsurf-macOS
-          path: Headsurf-macos.dmg
-          retention-days: 1
-
-      - name: Upload raw build output
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ matrix.os }}
-          path: dist/
-          retention-days: 1
-
-  package:
-    needs: build
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          repository: "icar1an/headbird"
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
-          ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-${{ matrix.os }}
-          path: dist
-
-      - name: Install create-dmg
-        if: runner.os == 'macOS'
-        run: brew install create-dmg
-
       - name: Package (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -182,7 +135,7 @@ jobs:
           chmod +x packaging/build_appimage.sh
           packaging/build_appimage.sh
 
-      - name: Upload artifacts
+      - name: Upload packaging artifacts
         uses: actions/upload-artifact@v4
         with:
           name: headsurf-${{ runner.os }}
@@ -190,64 +143,13 @@ jobs:
             Headsurf-macos.dmg
             packaging\\Headsurf-windows-setup.exe
             Headsurf-linux.AppImage
+          retention-days: 1
 
-  package-update:
-    needs: build
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-        include:
-          - os: macos-latest
-            platform: macos
-          - os: windows-latest
-            platform: windows
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          repository: "icar1an/headbird"
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
-          ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-${{ matrix.os }}
-          path: dist
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          python-version: "3.14"
-          enable-cache: true
-
-      - name: Install dependencies
-        run: uv sync --reinstall
-
-      - name: Setup Rclone
-        uses: AnimMouse/setup-rclone@v1
-        with:
-          rclone_config: |
-            [r2]
-            type = s3
-            provider = Cloudflare
-            access_key_id = ${{ secrets.R2_ACCESS_KEY_ID }}
-            secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
-            endpoint = https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
-            acl = private
-          disable_base64: true
-
-      - name: Pull tufup data from R2
+      - name: Pull tufup private data from R2
         shell: bash
         run: |
           rclone copy r2:${{ secrets.R2_PRIVATE_BUCKET }}/tufup/${{ matrix.platform }}/keystore/ \
             tufup/${{ matrix.platform }}/keystore/ \
-            -v
-          rclone copy r2:${{ secrets.R2_PUBLIC_BUCKET }}/tufup/${{ matrix.platform }}/repository/ \
-            tufup/${{ matrix.platform }}/repository/ \
             -v
           mkdir -p tufup/${{ matrix.platform }}/repository/targets
 
@@ -262,7 +164,7 @@ jobs:
             -v
 
   release:
-    needs: [package, package-update]
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
