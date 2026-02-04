@@ -28,6 +28,7 @@ jobs:
           repository: "headsurf/headsurf"
           ref: ${{ github.ref_name }}
           fetch-depth: 0
+          ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v3
